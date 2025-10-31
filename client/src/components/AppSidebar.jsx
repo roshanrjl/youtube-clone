@@ -15,7 +15,7 @@ import {
 
 const items = [
   { title: "Home", url: "/", icon: Home },
-  { title: "Your Videos", url: "/yourVideo", icon: Video },
+  { title: "Dashboard", url: "/yourVideo", icon: Video },
   { title: "Liked Videos", url: "/likeVideo", icon: ThumbsUp  },
   { title: "Search", url: "/search", icon: Search },
 ];

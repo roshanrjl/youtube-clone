@@ -1,12 +1,12 @@
 import apiClient from "../ApiClient/ApiClinet";
 
 
-export const createTweet = () => {
-  return apiClient.get("tweet/");
+export const createTweet = (text) => {
+  return apiClient.post("tweet/",text);
 };
 
-export const getUserTweets = (channelId) => {
-  return apiClient.get(`tweet/user/${channelId}`);
+export const getUserTweets = () => {
+  return apiClient.get("tweet/user");
 };
 
 export const updateTweet = (tweetId) => {

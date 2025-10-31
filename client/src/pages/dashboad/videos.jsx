@@ -4,7 +4,7 @@ import { useDispatch,useSelector } from 'react-redux'
 
 
 function Videos() {
-    cosnt [videos , setVideos]= useState()
+    const [videos , setVideos]= useState()
     const user = useSelector((state)=>state.auth)
     console.log("checking user",user)
 

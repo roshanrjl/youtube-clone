@@ -2,15 +2,29 @@ import React, { useState } from "react";
 import { Card, CardHeader, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { createTweet } from "../api/tweetsApi/tweetsapi";
 
 function CreatePost() {
   const [text, setText] = useState("");
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log("Text you entered is:", text);
-    //setText("");
+
+    // console.log("Text you entered is:", text);
+
+    try{
+      const response = await createTweet({text})
+      console.log("just checking response:",response)
+      if(response.status==200){
+        navigate("/")
+      }   
+
+
+    }catch(error){
+      console.error("something went wrong couldn't upload tweets...")
+    }
+    
   };
 
   return (

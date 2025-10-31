@@ -7,9 +7,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 //controller for creating the tweets
 const createTweet = asyncHandler(async (req, res) => {
-  const { contents } = req.body;
+  const { text}  = req.body;
+  console.log("checking if i got tweets or not:",text)
   const user = req.user._id;
-  if (!contents) {
+  if (!text) {
     throw new ApiError(400, "didn't get the tweet");
   }
 
@@ -20,7 +21,7 @@ const createTweet = asyncHandler(async (req, res) => {
   }
 
   const tweets = await Tweet.create({
-    content: contents,
+    content: text,
     owner: user,
   });
 
@@ -31,7 +32,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 //controller for  getting all the user tweets
 const getUserTweets = asyncHandler(async (req, res) => {
-  const { channelId } = req.params;
+  const channelId  = req.user._id;
   let { page = 1, limit = 10 } = req.query;
 
   page = parseInt(page, 10) || 1;
