@@ -1,0 +1,30 @@
+# Node modules (install inside container)
+node_modules
+npm-debug.log
+
+# Logs
+logs
+*.log
+
+# Environment files (if sensitive)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Git files
+.git
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build folders (frontend, if any)
+build
+dist
+
+# IDE files
+.vscode
+.idea
