@@ -14,7 +14,7 @@ validateEnv();
 
 connectDb()
   .then(() => {
-    app.listen(process.env.PORT || 8000, () => {
+    app.listen(process.env.PORT || 5000, () => {
       console.log(
         `${COLORS.green}[Server] [INFO]${COLORS.reset} Server is running at ${COLORS.red}http://localhost:${process.env.PORT}${COLORS.reset}`
       );

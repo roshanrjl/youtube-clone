@@ -8,8 +8,8 @@ services:
     image: server:latest
     env_file:
       - .env
-    ports:
-      - "5000:5000"
+    expose:
+      - 5000
     networks:
       - server-network
 
@@ -18,7 +18,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./nginx.conf:/etc/NGINX/nginx.conf:ro
+      - ./NGINX/nginx.conf:/etc/nginx/nginx.conf:ro   # 👈 make sure this is in a list format
     depends_on:
       - server
     environment:
@@ -27,6 +27,7 @@ services:
     restart: always
     networks:
       - server-network
+
 
 networks:
   server-network:
