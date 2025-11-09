@@ -1,38 +1,19 @@
 import apiClient from "../ApiClient/ApiClinet";
 
+// Fetch comments for a video (supports optional pagination)
+export const getVideoComments = (videoId, { page = 1, limit = 10 } = {}) => {
+  return apiClient.get(`comment/${videoId}`, { params: { page, limit } });
+};
 
-export const getVideoComments = (videoId)=>{
- return  apiClient.get(`comment/${videoId}`)
-}
+// Add a new comment to a video
+export const addComment = (videoId, comment) => {
+  return apiClient.post(`comment/${videoId}`, { comment });
+};
 
-export const addComment = (videoId)=>{
-return apiClient.post(`comment/${videoId}`)
-}
+export const updateComment = (commentId, comment) => {
+  return apiClient.patch(`comment/${commentId}`, { comment });
+};
 
-export const updateComment = (commentId)=>{
-  return apiClient.patch(`comment/${commentId}`)
-}
-
-export const deleteComment = (commentId)=>{
-  return apiClient.delete(`comment/${commentId}`)
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export const deleteComment = (commentId) => {
+  return apiClient.delete(`comment/${commentId}`);
+};

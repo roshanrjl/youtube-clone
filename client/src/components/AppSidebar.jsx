@@ -1,5 +1,5 @@
 import { useState } from "react";
-import {  Home, ThumbsUp , Video ,Search, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import {  Home, ThumbsUp ,MessageSquare , Video ,Search, Settings, ChevronDown, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import {
@@ -18,6 +18,7 @@ const items = [
   { title: "Dashboard", url: "/yourVideo", icon: Video },
   { title: "Liked Videos", url: "/likeVideo", icon: ThumbsUp  },
   { title: "Search", url: "/search", icon: Search },
+  { title: "Tweets", url: "/tweets", icon: MessageSquare  },
 ];
 
 const settingsSubItems = [

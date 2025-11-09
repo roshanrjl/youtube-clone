@@ -19,7 +19,7 @@ import SendEmails from "../pages/passwordpages/sendEmail";
 import SendOtp from "../pages/passwordpages/sendOtp";
 import SearchPage from "../pages/search.jsx"
 import Videos from "../pages/dashboad/videos.jsx";
-
+import Tweets from "../pages/Tweets";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -100,6 +100,10 @@ const router = createBrowserRouter([
       {
         path: "dashboad/video",
         element: <Videos />, // handle OAuth callback
+      },
+      {
+        path: "/tweets",
+        element: <Tweets />, // handle OAuth callback
       },
     ],
   },

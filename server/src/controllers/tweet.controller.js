@@ -7,8 +7,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 //controller for creating the tweets
 const createTweet = asyncHandler(async (req, res) => {
-  const { text}  = req.body;
-  console.log("checking if i got tweets or not:",text)
+  const { text } = req.body;
+  console.log("checking if i got tweets or not:", text);
   const user = req.user._id;
   if (!text) {
     throw new ApiError(400, "didn't get the tweet");
@@ -32,7 +32,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 //controller for  getting all the user tweets
 const getUserTweets = asyncHandler(async (req, res) => {
-  const channelId  = req.user._id;
+  const channelId = req.user._id;
   let { page = 1, limit = 10 } = req.query;
 
   page = parseInt(page, 10) || 1;
@@ -96,6 +96,90 @@ const getUserTweets = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, userTweets, "User tweets fetched successfully"));
 });
 
+// controller for getting all tweets from all users
+const allTweets = asyncHandler(async (req, res) => {
+  let {
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    order = "desc",
+    q,
+  } = req.query;
+
+  page = parseInt(page, 10) || 1;
+  limit = parseInt(limit, 10) || 10;
+  const skip = (page - 1) * limit;
+  const sortOrder = order === "asc" ? 1 : -1;
+
+  // Allow only specific sort fields
+  const allowedSort = new Set(["createdAt", "updatedAt"]);
+  if (!allowedSort.has(sortBy)) sortBy = "createdAt";
+
+  const pipeline = [
+    // Optional text filter on content
+    ...(q
+      ? [
+          {
+            $match: {
+              content: { $regex: q, $options: "i" },
+            },
+          },
+        ]
+      : []),
+    { $sort: { [sortBy]: sortOrder } },
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          { $unwind: "$owner" },
+          {
+            $project: {
+              content: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              "owner._id": 1,
+              "owner.username": 1,
+              "owner.avatar": 1,
+            },
+          },
+        ],
+      },
+    },
+  ];
+
+  const result = await Tweet.aggregate(pipeline);
+  const tweets = result?.[0]?.data || [];
+  const total = result?.[0]?.metadata?.[0]?.total || 0;
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { total, page, limit, tweets },
+        "All tweets fetched successfully"
+      )
+    );
+});
+
 //controller for updating the tweets
 const updateTweet = asyncHandler(async (req, res) => {
   const { newcontent } = req.body;
@@ -155,4 +239,4 @@ const deleteTweet = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "tweets deletes successfully"));
 });
 
-export { createTweet, getUserTweets, updateTweet, deleteTweet };
+export { createTweet, getUserTweets, allTweets, updateTweet, deleteTweet };
