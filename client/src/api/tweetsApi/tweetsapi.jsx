@@ -5,6 +5,10 @@ export const createTweet = (text) => {
   return apiClient.post("tweet/",text);
 };
 
+export const allTweets = ()=>{
+  return apiClient.get("/tweet")
+}
+
 export const getUserTweets = () => {
   return apiClient.get("tweet/user");
 };

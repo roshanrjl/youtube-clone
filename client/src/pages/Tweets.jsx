@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { allTweets } from "../api/tweetsApi/tweetsapi";
 
 function Tweets({ userId }) {
   const [tweets, setTweets] = useState([]);
@@ -7,14 +8,18 @@ function Tweets({ userId }) {
   // Fetch tweets of the logged-in user
   const fetchUserTweets = async () => {
     setLoading(true);
-    
+    try{
+      const response = await allTweets()
+      setTweets(response.data.data.tweets)
+    }catch(error){
+      console.error("could not fetch tweets")
+    }
     setLoading(false);
   };
 
   useEffect(() => {
-    if (userId) {
-      
-    }
+      fetchUserTweets()
+    
   }, [userId]);
 
   return (
@@ -27,7 +32,7 @@ function Tweets({ userId }) {
         <p>You haven’t posted any tweets yet.</p>
       ) : (
         <div className="space-y-4">
-          {tweets.map((tweet) => (
+          {tweets?.map((tweet) => (
             <div
               key={tweet._id}
               className="border rounded-lg p-3 bg-white shadow-sm"
@@ -36,6 +41,7 @@ function Tweets({ userId }) {
               <p className="text-xs text-gray-500 mt-2">
                 {new Date(tweet.createdAt).toLocaleString()}
               </p>
+              
             </div>
           ))}
         </div>
