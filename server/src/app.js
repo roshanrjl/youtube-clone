@@ -3,20 +3,25 @@ import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import userRoute from "./routes/user.routes.js";
-import commentRoute from "./routes/comment.routes.js"
-import dashboadRoute from "./routes/dashboad.routes.js"
-import likeRoute from "./routes/like.routes.js"
-import playlistRoute from "./routes/playlist.route.js"
-import subscriptionRoute from "./routes/subscription.routes.js"
-import tweetRoute from "./routes/tweet.routes.js"
-import videoRoute from "./routes/video.routes.js"
-import paymentRoute from "./routes/payment.routes.js"
-import profileRoute from "./routes/profile.routes.js"
-import AiRelatedRoute from "./routes/AiRelated.routes.js"
+import commentRoute from "./routes/comment.routes.js";
+import dashboadRoute from "./routes/dashboad.routes.js";
+import likeRoute from "./routes/like.routes.js";
+import playlistRoute from "./routes/playlist.route.js";
+import subscriptionRoute from "./routes/subscription.routes.js";
+import tweetRoute from "./routes/tweet.routes.js";
+import videoRoute from "./routes/video.routes.js";
+import paymentRoute from "./routes/payment.routes.js";
+import profileRoute from "./routes/profile.routes.js";
+import AiRelatedRoute from "./routes/AiRelated.routes.js";
 import "./config/password.config.js";
-import { errorHandler } from "./middlewares/errorHandler.middlewares.js"
+import { errorHandler } from "./middlewares/errorHandler.middlewares.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import { Server } from "socket.io";
+import { initializeSocketio } from "./socket/socket.js";
+import http from "http";
 
 const app = express();
+const httpServer = http.createServer(app);
 
 app.use(
   cors({
@@ -24,6 +29,16 @@ app.use(
     credentials: true,
   })
 );
+
+const io = new Server(httpServer, {
+  pingTimeout: 9000,
+  cors: {
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+  },
+});
+
+app.set("io", io);
 
 app.use(morgan("combined"));
 //middlewaire start vayo and middlewaire garauda .use garne
@@ -48,14 +63,17 @@ app.use("/api/v1/like", likeRoute);
 app.use("/api/v1/playlist", playlistRoute);
 app.use("/api/v1/tweet", tweetRoute);
 app.use("/api/v1/video", videoRoute);
-app.use("/api/v1/subscription", subscriptionRoute); 
-app.use("/api/v1/payment",paymentRoute)
-app.use("/api/v1/profile",profileRoute)
-app.use("/api/v1/uploads/",AiRelatedRoute)
-
+app.use("/api/v1/subscription", subscriptionRoute);
+app.use("/api/v1/payment", paymentRoute);
+app.use("/api/v1/profile", profileRoute);
+app.use("/api/v1/uploads/", AiRelatedRoute);
+app.use("/api/v1/notification", notificationRoutes);
 //route declaration
 app.get("/", (req, res) => {
   res.send("Hello, Morgan!");
 });
 app.use(errorHandler);
-export default app;
+
+initializeSocketio(io);
+
+export { app, httpServer };

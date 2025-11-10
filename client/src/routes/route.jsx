@@ -20,6 +20,9 @@ import SendOtp from "../pages/passwordpages/sendOtp";
 import SearchPage from "../pages/search.jsx"
 import Videos from "../pages/dashboad/videos.jsx";
 import Tweets from "../pages/Tweets";
+import Notification from "../pages/notification";
+
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -104,6 +107,10 @@ const router = createBrowserRouter([
       {
         path: "/tweets",
         element: <Tweets />, // handle OAuth callback
+      },
+      {
+        path: "/notification",
+        element: <Notification />, // handle OAuth callback
       },
     ],
   },

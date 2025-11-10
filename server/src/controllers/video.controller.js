@@ -6,6 +6,9 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { getVideoDurationInSeconds } from "get-video-duration";
+import { Subscription } from "../models/subscribition.models.js";
+import { Notification } from "../models/notification.models.js";
+import { emitSocketEvent } from "../socket/socket.js";
 
 //controller for getall videos
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -89,59 +92,80 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 //controller for publishing video
-const publishAVideo = asyncHandler(async (req, res) => {
+export const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
 
   if (!req.files || !req.files.video) {
-    return res
-      .status(400)
-      .json({ success: false, message: "No video file uploaded" });
+    return res.status(400).json({
+      success: false,
+      message: "No video file uploaded",
+    });
   }
-  const thumbnailpath = req.files.thumbnail?.[0].path;
 
-  if (!thumbnailpath) {
-    throw new ApiError(400, "couldnot found the thumbnail");
-  }
-  const thumbnailresult = await uploadOnCloudinary(thumbnailpath);
+  const thumbnailPath = req.files.thumbnail?.[0]?.path;
+  if (!thumbnailPath) throw new ApiError(400, "Thumbnail not found");
 
-  if (!thumbnailresult) {
-    throw new ApiError(
-      500,
-      "something went wrong while uploading to the cloudinary"
-    );
-  }
-  const videopath = req.files.video?.[0].path;
+  const thumbnailResult = await uploadOnCloudinary(thumbnailPath);
+  if (!thumbnailResult?.url)
+    throw new ApiError(500, "Error uploading thumbnail to Cloudinary");
 
-  if (!videopath) {
-    throw new ApiError(400, "videopath didn't found");
-  }
-  let duration;
+  const videoPath = req.files.video?.[0]?.path;
+  if (!videoPath) throw new ApiError(400, "Video path not found");
+
+  let duration = 0;
   try {
-    duration = await getVideoDurationInSeconds(videopath);
-    console.log("Duration in seconds:", duration);
+    duration = await getVideoDurationInSeconds(videoPath);
   } catch (error) {
-    console.error("Error getting duration:", error);
-    duration = 0; // fallback if needed
+    console.error("Error getting video duration:", error);
   }
-  const coudinaryresult = await uploadOnCloudinary(videopath);
-  console.log("checking response from cloudinary for video:", coudinaryresult);
 
-  if (!coudinaryresult.url) {
-    throw new ApiError(400, "couldn't found the video url from cloudinary");
-  }
-  const myvideo = await Video.create({
-    videoFile: coudinaryresult.url,
-    thumbnail: thumbnailresult.url,
+  const cloudinaryResult = await uploadOnCloudinary(videoPath);
+  if (!cloudinaryResult?.url)
+    throw new ApiError(400, "Error uploading video to Cloudinary");
+
+  const myVideo = await Video.create({
+    videoFile: cloudinaryResult.url,
+    thumbnail: thumbnailResult.url,
     duration,
-    title: title,
-    description: description,
+    title,
+    description,
     owner: req.user._id,
   });
 
+  const subscribers = await Subscription.find({
+    channel: req.user._id,
+  }).populate("subscriber", "_id username");
+
+  if (subscribers.length > 0) {
+    const notifications = subscribers.map((sub) => ({
+      receiver: sub.subscriber._id,
+      sender: req.user._id,
+      type: "video",
+      videoId: myVideo._id,
+      message: `${req.user.username} uploaded a new video: "${title}"`,
+    }));
+
+    await Notification.insertMany(notifications);
+
+    subscribers.forEach((sub) => {
+      emitSocketEvent(
+        req,
+        sub.subscriber._id.toString(),
+        "new_notification", // ✅ event name fixed
+        {
+          videoId: myVideo._id,
+          message: `${req.user.username} uploaded a new video: "${title}"`,
+          sender: req.user.username,
+        }
+      );
+    });
+  }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, myvideo, "video created successfully"));
+    .json(new ApiResponse(200, myVideo, "Video created successfully"));
 });
+
 //controller for getting video by id
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -350,9 +374,12 @@ const addViews = asyncHandler(async (req, res) => {
 
 const getSearchedVideo = asyncHandler(async (req, res) => {
   const query = req.query.q?.toLowerCase() || "";
-  console.log("query from frontend:", query)
-  if(!query){
-    return new ApiError(400 , "didn't got any query from frontend please provide search query")
+  console.log("query from frontend:", query);
+  if (!query) {
+    return new ApiError(
+      400,
+      "didn't got any query from frontend please provide search query"
+    );
   }
   const videos = await Video.find({
     $or: [
@@ -360,10 +387,9 @@ const getSearchedVideo = asyncHandler(async (req, res) => {
       { description: { $regex: query, $options: "i" } },
     ],
   });
-  return res 
-           .status(200)
-           .json(new ApiResponse(200 , videos , "video found successfully"))
-
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videos, "video found successfully"));
 });
 
 export {
@@ -375,5 +401,5 @@ export {
   togglePublishStatus,
   addViews,
   yourVideos,
-  getSearchedVideo
+  getSearchedVideo,
 };
