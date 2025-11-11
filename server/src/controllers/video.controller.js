@@ -92,7 +92,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 //controller for publishing video
-export const publishAVideo = asyncHandler(async (req, res) => {
+ const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
 
   if (!req.files || !req.files.video) {
@@ -136,30 +136,26 @@ export const publishAVideo = asyncHandler(async (req, res) => {
     channel: req.user._id,
   }).populate("subscriber", "_id username");
 
-  if (subscribers.length > 0) {
-    const notifications = subscribers.map((sub) => ({
-      receiver: sub.subscriber._id,
-      sender: req.user._id,
-      type: "video",
-      videoId: myVideo._id,
-      message: `${req.user.username} uploaded a new video: "${title}"`,
-    }));
+   for (const sub of subscribers) {
+  const notification = await Notification.create({
+    receiver: sub.subscriber._id,
+    sender: req.user._id,
+    type: "video",
+    videoId: myVideo._id,
+    message: `${req.user.username} uploaded a new video: ${myVideo.title}`,
+  });
 
-    await Notification.insertMany(notifications);
+  // ✅ emit using your custom function
+  emitSocketEvent(req, sub.subscriber._id.toString(), "new_notification", {
+    _id: notification._id,
+    message: notification.message,
+    sender: { _id: req.user._id, username: req.user.username },
+    videoId: myVideo._id,
+    createdAt: notification.createdAt,
+  });
+}
 
-    subscribers.forEach((sub) => {
-      emitSocketEvent(
-        req,
-        sub.subscriber._id.toString(),
-        "new_notification", // ✅ event name fixed
-        {
-          videoId: myVideo._id,
-          message: `${req.user.username} uploaded a new video: "${title}"`,
-          sender: req.user.username,
-        }
-      );
-    });
-  }
+
 
   return res
     .status(200)

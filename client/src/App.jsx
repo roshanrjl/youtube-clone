@@ -4,7 +4,7 @@ import { refreshTokenOnLoad } from "./redux/authSlice";
 import Navbar from "./components/Navbar";
 import { Outlet } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-
+import { initSocket } from "./socketClient/socket";
 
 function App() {
   const dispatch = useDispatch();
@@ -13,6 +13,11 @@ function App() {
   useEffect(() => {
     dispatch(refreshTokenOnLoad());
   }, [dispatch]);
+
+    useEffect(() => {
+    // Initialize global socket connection
+    initSocket();
+  }, []); 
 
   if (isloading) return <div>Loading...</div>;
 

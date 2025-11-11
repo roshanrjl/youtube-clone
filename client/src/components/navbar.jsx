@@ -4,7 +4,7 @@ import { Button } from "./components/ui/button";
 import { logout } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
 import { showForm } from "../redux/formSlice";
-import  {ModeToggle} from "./ToggleMode"
+import { ModeToggle } from "./ToggleMode";
 
 // ShadCN UI dropdown menu imports
 import {
@@ -13,11 +13,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./components/ui/dropdown-menu";
-import { set } from "react-hook-form";
 
 function Menubar() {
   const { user } = useSelector((state) => state.auth);
-  const [searchInput , setSearchInput]= useState()
+  const { unreadCount } = useSelector((state) => state.notification); // ✅ get unread notifications
+  const [searchInput, setSearchInput] = useState();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -27,17 +27,14 @@ function Menubar() {
 
   const handleUpload = () => {
     dispatch(showForm());
-    navigate("/upload-video")
+    navigate("/upload-video");
   };
-  
-  const handleSearch = (e)=>{
 
-    if(e.key=="Enter"&&searchInput.trim()!=""){
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && searchInput?.trim() !== "") {
       navigate(`/search?query=${encodeURIComponent(searchInput.trim())}`);
-
     }
-
-  }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 shadow bg-blue-400 dark:bg-gray-900">
@@ -53,14 +50,16 @@ function Menubar() {
         <input
           type="text"
           placeholder="Search"
-          onChange={(e)=>setSearchInput(e.target.value)}
+          onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={handleSearch}
           className="w-full px-14 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
       </div>
+
+      {/* Mode Toggle */}
       <div>
-          <label htmlFor="">mode</label>
-          <ModeToggle/>
+        <label htmlFor="">Mode</label>
+        <ModeToggle />
       </div>
 
       {/* Right Side Menu */}
@@ -95,8 +94,15 @@ function Menubar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Notification */}
-        <Button onClick={() => navigate("/notification")}>🔔</Button>
+        {/* Notification Bell */}
+        <div className="relative">
+          <Button onClick={() => navigate("/notification")}>🔔</Button>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 px-1 text-xs font-bold text-white bg-red-500 rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </div>
 
         {/* Login / Logout */}
         {user ? (

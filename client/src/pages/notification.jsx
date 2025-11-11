@@ -1,44 +1,29 @@
-import React, { useEffect, useState } from "react";
-import { Localstorage } from "../utils";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { FiBell } from "react-icons/fi";
-import { connectSocket } from "../socketClient/socket";
-import axios from "axios";
+import { setNotifications } from "../redux/notificationSlice";
 import { getUserNotifications } from "../api/notificationApi/notificationApi";
 
-export default function NotificationPage() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Notification() {
+  const dispatch = useDispatch();
+
+  // Get notifications and loading state from Redux
+  const notifications = useSelector((state) => state.notification.items);
+  const loading = useSelector((state) => state.notification.loading);
 
   useEffect(() => {
-    const token = Localstorage.get("accessToken");
-    if (!token) return;
-
+    // Fetch notifications from backend on page load
     const fetchNotifications = async () => {
       try {
-        const res = await getUserNotifications()
-        console.log("checking the data",res.data.data)
-        setNotifications(res.data.data);
+        const res = await getUserNotifications();
+        dispatch(setNotifications(res.data.data));
       } catch (error) {
         console.error("❌ Failed to load notifications:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchNotifications();
-
-    const socket = connectSocket(token);
-    if (!socket) return;
-
-    // ✅ Listen for real-time notifications
-    socket.on("new_notification", (data) => {
-      setNotifications((prev) => [data, ...prev]);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+  }, [dispatch]);
 
   if (loading) {
     return (
@@ -58,7 +43,7 @@ export default function NotificationPage() {
         {notifications.length > 0 ? (
           notifications.map((n, idx) => (
             <div
-              key={idx}
+              key={n._id || idx}
               className="p-4 bg-white dark:bg-slate-900 rounded-lg shadow-sm dark:shadow-none"
             >
               <div className="font-medium text-slate-900 dark:text-white">
