@@ -17,11 +17,13 @@ import GoogleCallback from "../utils/googleGithublogin";
 import ResetPassword from "../pages/passwordpages/ResetPassword.jsx";
 import SendEmails from "../pages/passwordpages/sendEmail";
 import SendOtp from "../pages/passwordpages/sendOtp";
-import SearchPage from "../pages/search.jsx"
+import SearchPage from "../pages/search.jsx";
 import Videos from "../pages/dashboad/videos.jsx";
 import Tweets from "../pages/Tweets";
 import Notification from "../pages/notification";
-
+import Broadcaster from "../components/BroadCaster";
+import ViewerWrapper from "../components/viewerWapper"; // wrapper to handle route param
+import LiveStreamDashboard from "../pages/liveStreamDashboard";
 
 const router = createBrowserRouter([
   {
@@ -112,6 +114,9 @@ const router = createBrowserRouter([
         path: "/notification",
         element: <Notification />, // handle OAuth callback
       },
+      { path: "/live-dashboard", element: <LiveStreamDashboard /> },
+      { path: "/go-live", element: <Broadcaster /> },
+      { path: "/viewer/:broadcasterId", element: <ViewerWrapper /> },
     ],
   },
 ]);
