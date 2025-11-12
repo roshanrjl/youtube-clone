@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 const initializeSocketio = (io) => {
   const broadcasters = {}; // { socketId: userId }
-  const viewers = {};      // { broadcasterSocketId: [viewerSocketId1, ...] }
+  const viewers = {}; // { broadcasterSocketId: [viewerSocketId1, ...] }
 
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
@@ -30,7 +30,10 @@ const initializeSocketio = (io) => {
     socket.on("broadcaster", () => {
       broadcasters[socket.id] = socket.userId || socket.id;
       viewers[socket.id] = [];
-      socket.broadcast.emit("newBroadcaster", { broadcasterId: socket.id, userId: socket.userId });
+      socket.broadcast.emit("newBroadcaster", {
+        broadcasterId: socket.id,
+        userId: socket.userId,
+      });
       console.log("Broadcaster started:", socket.id);
     });
 
@@ -38,13 +41,63 @@ const initializeSocketio = (io) => {
       if (broadcasters[broadcasterId]) {
         viewers[broadcasterId].push(socket.id);
         io.to(broadcasterId).emit("watcher", socket.id);
-        console.log(`Viewer ${socket.id} watching broadcaster ${broadcasterId}`);
+        console.log(
+          `Viewer ${socket.id} watching broadcaster ${broadcasterId}`
+        );
       }
     });
 
-    socket.on("offer", (id, message) => io.to(id).emit("offer", socket.id, message));
-    socket.on("answer", (id, message) => io.to(id).emit("answer", socket.id, message));
-    socket.on("candidate", (id, message) => io.to(id).emit("candidate", socket.id, message));
+    socket.on("offer", (id, message) =>
+      io.to(id).emit("offer", socket.id, message)
+    );
+    socket.on("answer", (id, message) =>
+      io.to(id).emit("answer", socket.id, message)
+    );
+    socket.on("candidate", (id, message) =>
+      io.to(id).emit("candidate", socket.id, message)
+    );
+
+    // Chat message handling
+    socket.on("chat_message", (data) => {
+      const { broadcasterId, message, username, timestamp } = data;
+      console.log(`💬 Chat message from ${username}: ${message}`);
+
+      // Broadcast to the broadcaster
+      if (broadcasterId === "broadcaster") {
+        // Message from broadcaster - send to all viewers
+        const broadcasterSocketId = socket.id;
+        const viewersList = viewers[broadcasterSocketId] || [];
+
+        viewersList.forEach((viewerId) => {
+          io.to(viewerId).emit("chat_message", {
+            username,
+            message,
+            timestamp,
+            isBroadcaster: true,
+          });
+        });
+      } else {
+        // Message from viewer - send to broadcaster and all other viewers
+        io.to(broadcasterId).emit("chat_message", {
+          username,
+          message,
+          timestamp,
+          isBroadcaster: false,
+        });
+
+        const viewersList = viewers[broadcasterId] || [];
+        viewersList.forEach((viewerId) => {
+          if (viewerId !== socket.id) {
+            io.to(viewerId).emit("chat_message", {
+              username,
+              message,
+              timestamp,
+              isBroadcaster: false,
+            });
+          }
+        });
+      }
+    });
 
     socket.on("disconnect", (reason) => {
       console.log("User disconnected:", socket.id, "Reason:", reason);

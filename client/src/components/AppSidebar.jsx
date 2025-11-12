@@ -17,7 +17,7 @@ const items = [
   { title: "Home", url: "/", icon: Home },
   { title: "Dashboard", url: "/yourVideo", icon: Video },
   { title: "Liked Videos", url: "/likeVideo", icon: ThumbsUp  },
-  { title: "Search", url: "/search", icon: Search },
+  { title: "View Live", url: "/live-dashboard", icon: Video },
   { title: "Tweets", url: "/tweets", icon: MessageSquare  },
 ];
 
