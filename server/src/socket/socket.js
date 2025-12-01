@@ -21,6 +21,21 @@ const initializeSocketio = (io) => {
         socket.userId = userId;
         socket.emit("registered", { userId, socketId: socket.id });
         console.log("User authenticated:", userId);
+
+        // Send list of active broadcasters to the newly connected user
+        const activeBroadcasters = Object.keys(broadcasters).map(
+          (socketId) => ({
+            broadcasterId: socketId,
+            userId: broadcasters[socketId],
+          })
+        );
+
+        if (activeBroadcasters.length > 0) {
+          socket.emit("activeBroadcasters", activeBroadcasters);
+          console.log(
+            `Sent ${activeBroadcasters.length} active broadcasters to ${userId}`
+          );
+        }
       } catch (error) {
         socket.emit("error", { message: "Invalid token" });
         socket.disconnect();
@@ -30,11 +45,15 @@ const initializeSocketio = (io) => {
     socket.on("broadcaster", () => {
       broadcasters[socket.id] = socket.userId || socket.id;
       viewers[socket.id] = [];
+      console.log("📡 Broadcaster started:", socket.id, "User:", socket.userId);
+      console.log("📢 Broadcasting to all other clients...");
+
       socket.broadcast.emit("newBroadcaster", {
         broadcasterId: socket.id,
         userId: socket.userId,
       });
-      console.log("Broadcaster started:", socket.id);
+
+      console.log("✅ Total broadcasters:", Object.keys(broadcasters).length);
     });
 
     socket.on("watcher", (broadcasterId) => {
@@ -60,13 +79,21 @@ const initializeSocketio = (io) => {
     // Chat message handling
     socket.on("chat_message", (data) => {
       const { broadcasterId, message, username, timestamp } = data;
-      console.log(`💬 Chat message from ${username}: ${message}`);
+      console.log(
+        `💬 Chat message from ${username} (${socket.id}): ${message}`
+      );
+      console.log(`   Target broadcaster: ${broadcasterId}`);
 
       // Broadcast to the broadcaster
       if (broadcasterId === "broadcaster") {
         // Message from broadcaster - send to all viewers
         const broadcasterSocketId = socket.id;
         const viewersList = viewers[broadcasterSocketId] || [];
+
+        console.log(
+          `   📤 Sending to ${viewersList.length} viewers:`,
+          viewersList
+        );
 
         viewersList.forEach((viewerId) => {
           io.to(viewerId).emit("chat_message", {
@@ -75,17 +102,22 @@ const initializeSocketio = (io) => {
             timestamp,
             isBroadcaster: true,
           });
+          console.log("     ✅ Emitted to viewer:", viewerId);
         });
       } else {
         // Message from viewer - send to broadcaster and all other viewers
+        console.log(`   📤 Sending to broadcaster: ${broadcasterId}`);
         io.to(broadcasterId).emit("chat_message", {
           username,
           message,
           timestamp,
           isBroadcaster: false,
         });
+        console.log("     ✅ Emitted to broadcaster:", broadcasterId);
 
         const viewersList = viewers[broadcasterId] || [];
+        console.log(`   📤 Sending to ${viewersList.length - 1} other viewers`);
+
         viewersList.forEach((viewerId) => {
           if (viewerId !== socket.id) {
             io.to(viewerId).emit("chat_message", {
@@ -94,6 +126,7 @@ const initializeSocketio = (io) => {
               timestamp,
               isBroadcaster: false,
             });
+            console.log("     ✅ Emitted to other viewer:", viewerId);
           }
         });
       }

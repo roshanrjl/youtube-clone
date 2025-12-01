@@ -5,7 +5,7 @@ import { Localstorage } from "../utils";
 
 let socket;
 const peers = {}; // store RTCPeerConnections for multiple broadcasters/viewers
-let currentStream = null; // store current media stream (camera or screen)
+let currentStream = null;
 
 export const initSocket = () => {
   if (socket) return socket;
@@ -21,6 +21,19 @@ export const initSocket = () => {
   socket.on("connect", () => {
     console.log("✅ Socket connected:", socket.id);
     socket.emit("register", token);
+  });
+
+  socket.on("registered", ({ userId, socketId }) => {
+    console.log("✅ Socket registered:", socketId, "User ID:", userId);
+  });
+
+  // Handle list of active broadcasters on connect
+  socket.on("activeBroadcasters", (broadcasters) => {
+    console.log("📋 Received active broadcasters list:", broadcasters);
+    // This will be picked up by components listening for newBroadcaster events
+    broadcasters.forEach((broadcaster) => {
+      socket.emit("newBroadcaster-internal", broadcaster);
+    });
   });
 
   // =========================
@@ -183,8 +196,18 @@ export const startBroadcast = async (useScreenShare = false) => {
     }
 
     // Tell server I'm a broadcaster
-    socket.emit("broadcaster");
-    console.log("📡 Emitted 'broadcaster' event");
+    // Wait a bit to ensure socket is fully connected and registered
+    const emitBroadcaster = () => {
+      if (!socket.connected) {
+        console.warn("⚠️ Socket not connected yet, waiting...");
+        setTimeout(emitBroadcaster, 100);
+        return;
+      }
+      socket.emit("broadcaster");
+      console.log("📡 Emitted 'broadcaster' event, socket ID:", socket.id);
+    };
+
+    emitBroadcaster();
 
     // Handle answers from viewers
     socket.on("answer", async (viewerId, answer) => {
@@ -382,33 +405,65 @@ export const stopBroadcast = () => {
 // =========================
 // Live Chat Functions
 // =========================
-export const setupChatListeners = (onMessageReceived) => {
-  if (!socket) return;
+let chatMessageHandler = null;
 
-  socket.on("chat_message", (message) => {
-    console.log("💬 Received chat message:", message);
+export const setupChatListeners = (onMessageReceived) => {
+  if (!socket) {
+    console.error("❌ Socket not available for chat listeners");
+    return;
+  }
+
+  if (!socket.connected) {
+    console.warn("⚠️ Socket not connected, listeners may not work");
+  }
+
+  // Remove existing listener to avoid duplicates
+  if (chatMessageHandler) {
+    socket.off("chat_message", chatMessageHandler);
+    console.log("🔄 Removed old chat listener");
+  }
+
+  // Create new handler
+  chatMessageHandler = (message) => {
+    console.log("💬 Received chat message in handler:", message);
     if (onMessageReceived) {
       onMessageReceived(message);
     }
-  });
+  };
+
+  socket.on("chat_message", chatMessageHandler);
+  console.log(
+    "✅ Chat listeners setup, socket ID:",
+    socket.id,
+    "connected:",
+    socket.connected
+  );
 };
 
 export const sendChatMessage = (broadcasterId, message, username) => {
-  if (!socket) return;
+  if (!socket) {
+    console.error("❌ Socket not initialized for chat");
+    return;
+  }
 
-  socket.emit("chat_message", {
+  const chatData = {
     broadcasterId,
     message,
     username,
     timestamp: Date.now(),
-  });
+  };
 
-  console.log("📤 Sent chat message:", message);
+  console.log("📤 Sending chat message:", chatData);
+  socket.emit("chat_message", chatData);
 };
 
 export const removeChatListeners = () => {
   if (!socket) return;
-  socket.off("chat_message");
+  if (chatMessageHandler) {
+    socket.off("chat_message", chatMessageHandler);
+    chatMessageHandler = null;
+    console.log("🧹 Chat listeners removed");
+  }
 };
 
 // =========================

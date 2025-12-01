@@ -9,6 +9,7 @@ import {
   removeChatListeners,
 } from "../socketClient/socket";
 import { Localstorage } from "../utils";
+import { useParams } from "react-router-dom";
 
 function Broadcaster() {
   const [streaming, setStreaming] = useState(false);
@@ -22,6 +23,7 @@ function Broadcaster() {
   const [messageInput, setMessageInput] = useState("");
   const chatEndRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const { broadcasterId } = useParams();
 
   useEffect(() => {
     // Get current user info
@@ -32,15 +34,28 @@ function Broadcaster() {
   }, []);
 
   useEffect(() => {
-    // Setup chat listeners
+    // Setup chat listeners when streaming starts
     if (streaming) {
+      const socket = initSocket();
+      if (!socket) {
+        console.error("❌ Cannot setup chat: socket not initialized");
+        return;
+      }
+      console.log(
+        "🎙️ Setting up broadcaster chat listeners, socket:",
+        socket.id
+      );
       setupChatListeners((message) => {
+        console.log("📥 Broadcaster received message:", message);
         setChatMessages((prev) => [...prev, message]);
       });
     }
 
     return () => {
-      removeChatListeners();
+      if (streaming) {
+        console.log("🧹 Removing broadcaster chat listeners");
+        removeChatListeners();
+      }
     };
   }, [streaming]);
 
@@ -126,8 +141,9 @@ function Broadcaster() {
 
     setChatMessages((prev) => [...prev, newMessage]);
 
-    // Send to viewers via socket
+    // Send to viewers via socket - use "broadcaster" as identifier
     sendChatMessage("broadcaster", messageInput, username);
+    console.log("📤 Broadcaster sent message:", messageInput);
 
     setMessageInput("");
   };

@@ -47,6 +47,12 @@ function LiveStreamDashboard() {
       });
     });
 
+    // Handle initial list of active broadcasters
+    s.on("activeBroadcasters", (broadcasters) => {
+      console.log("📋 Received active broadcasters:", broadcasters);
+      setLiveBroadcasters(broadcasters);
+    });
+
     // Remove broadcaster from list when they end stream
     s.on("broadcasterEnded", (broadcasterId) => {
       console.log("📴 Broadcaster ended:", broadcasterId);
@@ -61,6 +67,7 @@ function LiveStreamDashboard() {
 
     return () => {
       s.off("newBroadcaster");
+      s.off("activeBroadcasters");
       s.off("broadcasterEnded");
     };
   }, [watching]);
@@ -68,13 +75,26 @@ function LiveStreamDashboard() {
   // Setup chat listeners when watching a stream
   useEffect(() => {
     if (watching) {
+      const s = initSocket();
+      if (!s) {
+        console.error("❌ Cannot setup chat: socket not initialized");
+        return;
+      }
+      console.log(
+        "👁️ Setting up viewer chat listeners for:",
+        watching,
+        "socket:",
+        s.id
+      );
       setupChatListeners((message) => {
+        console.log("📥 Viewer received message:", message);
         setChatMessages((prev) => [...prev, message]);
       });
     }
 
     return () => {
       if (watching) {
+        console.log("🧹 Removing viewer chat listeners");
         removeChatListeners();
       }
     };
@@ -119,6 +139,12 @@ function LiveStreamDashboard() {
 
     // Send to broadcaster and other viewers via socket
     sendChatMessage(watching, messageInput, username);
+    console.log(
+      "📤 Viewer sent message to broadcaster:",
+      watching,
+      "Message:",
+      messageInput
+    );
 
     setMessageInput("");
   };
