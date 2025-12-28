@@ -7,23 +7,18 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { sendEmail } from "../utils/sendMail.js";
 import { generateOtp } from "../utils/generateotp.js";
+import bcrypt from "bcrypt";
 
-const generateAccessAndRefereshTokens = async (userId) => {
-  try {
-    const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+export const generateAccessAndRefereshTokens = async (userId) => {
+  const user = await User.findById(userId);
 
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
 
-    return { accessToken, refreshToken };
-  } catch (error) {
-    throw new ApiError(
-      500,
-      "Something went wrong while generating referesh and access token"
-    );
-  }
+  user.refreshToken = await bcrypt.hash(refreshToken, 10);
+  await user.save({ validateBeforeSave: false });
+
+  return { accessToken, refreshToken };
 };
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -218,57 +213,25 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
-const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
-  console.log("incoming token from fronted:", incomingRefreshToken);
+ const refreshAccessToken = async (req, res) => {
+  const token = req.cookies.refreshToken;
+  if (!token) return res.sendStatus(401);
 
-  if (!incomingRefreshToken) {
-    throw new ApiError(401, "Unauthorized request");
-  }
+  const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+  const user = await User.findById(decoded._id);
 
-  try {
-    const decodedToken = jwt.verify(
-      incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET
-    );
+  const valid = await bcrypt.compare(token, user.refreshToken);
+  if (!valid) return res.sendStatus(401);
 
-    const user = await User.findById(decodedToken?._id);
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefereshTokens(user._id);
 
-    if (!user) {
-      throw new ApiError(401, "Invalid refresh token");
-    }
+  res
+    .cookie("accessToken", accessToken, { httpOnly: true })
+    .cookie("refreshToken", refreshToken, { httpOnly: true })
+    .json({ success: true });
+};
 
-    if (incomingRefreshToken !== user.refreshToken) {
-      throw new ApiError(401, "Refresh token is expired or used");
-    }
-
-    const options = {
-      httpOnly: true,
-      secure: false, // true always, even on localhost, because SameSite=None requires it
-      sameSite: "lax",
-      path: "/",
-    };
-
-    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
-      user._id
-    );
-
-    return res
-      .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          { accessToken, refreshToken },
-          "Access token refreshed"
-        )
-      );
-  } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refresh token");
-  }
-});
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;

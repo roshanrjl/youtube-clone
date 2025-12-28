@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 const initializeSocketio = (io) => {
   const broadcasters = {}; // { socketId: userId }
-  const viewers = {}; // { broadcasterSocketId: [viewerSocketId1, ...] }
+    // { broadcasterSocketId: [viewerSocketId1, ...] }
 
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
@@ -16,7 +16,6 @@ const initializeSocketio = (io) => {
       try {
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         const userId = decoded._id;
-
         socket.join(userId);
         socket.userId = userId;
         socket.emit("registered", { userId, socketId: socket.id });
