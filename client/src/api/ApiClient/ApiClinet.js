@@ -26,7 +26,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed → let frontend handle logout
         // e.g., redirect to login page
-        window.location.href = "/login";
+        // window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
