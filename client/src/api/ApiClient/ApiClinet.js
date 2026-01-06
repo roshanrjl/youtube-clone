@@ -19,7 +19,7 @@ apiClient.interceptors.response.use(
 
       try {
         // Attempt refresh token
-        await apiClient.post("/auth/refresh-token");
+        await apiClient.post("users/auth/refresh-token");
 
         // Retry original request
         return apiClient(originalRequest);

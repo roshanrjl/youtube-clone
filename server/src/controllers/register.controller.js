@@ -168,7 +168,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: false, // true always, even on localhost, because SameSite=None requires it
-    sameSite: "lax",
+    sameSite: "none",
   };
 
   return res
@@ -214,6 +214,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
  const refreshAccessToken = async (req, res) => {
+  console.log("to check if the controller ever reached here or not")
   const token = req.cookies.refreshToken;
   if (!token) return res.sendStatus(401);
 
