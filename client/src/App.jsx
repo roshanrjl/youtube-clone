@@ -11,7 +11,16 @@ function App() {
   const { user, isloading } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    dispatch(refreshTokenOnLoad());
+    // Only try to refresh if we have a user in localStorage
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser && JSON.parse(storedUser)) {
+        dispatch(refreshTokenOnLoad());
+      }
+    } catch (error) {
+      // If localStorage is corrupted, skip refresh
+      console.error("Failed to parse user from localStorage:", error);
+    }
   }, [dispatch]);
 
     useEffect(() => {
