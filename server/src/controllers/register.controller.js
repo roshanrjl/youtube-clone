@@ -213,27 +213,64 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
- const refreshAccessToken =asyncHandler(async (req, res) => {
-  
-   console.log("to check if the controller ever reached here or not")
-   const token = req.cookies.refreshToken;
-   if (!token) return res.sendStatus(401);
- 
-   const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-   const user = await User.findById(decoded._id);
- 
-   const valid = await bcrypt.compare(token, user.refreshToken);
-   if (!valid) return res.sendStatus(401);
- 
-   const { accessToken, refreshToken } =
-     await generateAccessAndRefereshTokens(user._id);
- 
-   res
-     .cookie("accessToken", accessToken, { httpOnly: true })
-     .cookie("refreshToken", refreshToken, { httpOnly: true })
-     .json({ success: true });
- }
- );
+ const refreshAccessToken = asyncHandler(async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+    
+    if (!token) {
+      throw new ApiError(401, "Refresh token not found");
+    }
+
+    // Verify the refresh token
+    const decoded = jwt. verify(token, process.env. REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decoded._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token - user not found");
+    }
+
+    // Compare the provided token with the stored hashed token
+    const valid = await bcrypt.compare(token, user.refreshToken);
+    
+    if (!valid) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+
+    // Generate new tokens
+    const { accessToken, refreshToken:  newRefreshToken } =
+      await generateAccessAndRefereshTokens(user._id);
+
+    // Cookie options (same as login)
+    const options = {
+      httpOnly: true,
+      secure: true, // Important for production
+      sameSite: "none",
+    };
+
+    // Get user without sensitive data
+    const loggedInUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            user: loggedInUser,
+            accessToken,
+            refreshToken:  newRefreshToken,
+          },
+          "Access token refreshed successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?. message || "Invalid refresh token");
+  }
+});
 
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {

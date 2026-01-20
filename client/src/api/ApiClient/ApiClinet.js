@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Localstorage } from "../../utils/index.js";
+import { refreshAccessToken } from "../userApi/userapi.jsx";
 
 // make this instance of axios
 const apiClient = axios.create({
@@ -19,7 +20,7 @@ apiClient.interceptors.response.use(
         if(error.response?.status === 401 && !originalRequest._retry){   
             originalRequest._retry = true;
             try{
-                const refreshResponse = await apiClient.post("/users/auth/refresh-token");
+                const refreshResponse = await refreshAccessToken();
                 
                 // Update localStorage with new access token if available
                 const newAccessToken = refreshResponse.data?.data?.accessToken;
