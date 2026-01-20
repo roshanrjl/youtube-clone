@@ -18,7 +18,7 @@ export const logoutUser =()=>{
 
 export const refreshAccessToken = () => {
   return axios.post(
-    `${import.meta.env.VITE_SERVER_URI}/users/refresh-token`,
+    `${import.meta.env.VITE_SERVER_URI}/users/auth/refresh-token`,
     {},
     { withCredentials: true } // send cookies
   );

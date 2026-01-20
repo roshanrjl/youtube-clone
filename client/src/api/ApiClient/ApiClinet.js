@@ -1,38 +1,44 @@
 import axios from "axios";
+import { Localstorage } from "../../utils/index.js";
 
-// Axios instance
+// make this instance of axios
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_SERVER_URI,
-  withCredentials: true, // REQUIRED for cookies
-  timeout: 120000,
-});
+    baseURL:import.meta.env.VITE_SERVER_URI,
+    withCredentials: true,
+    headers: {
+        "Content-type": "application/json",
+    },
+    timeout: 120000,
+})
 
-// ---------------- RESPONSE INTERCEPTOR ----------------
+// Response incterceptor
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Prevent infinite loop
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Attempt refresh token
-        await apiClient.post("users/auth/refresh-token");
-
-        // Retry original request
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed → let frontend handle logout
-        // e.g., redirect to login page
-        // window.location.href = "/login";
-        return Promise.reject(refreshError);
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
+    (response)=> response,
+    async (error)=>{
+        const originalRequest = error.config;
+        if(error.response?.status === 401 && !originalRequest._retry){   
+            originalRequest._retry = true;
+            try{
+                const refreshResponse = await apiClient.post("/users/auth/refresh-token");
+                
+                // Update localStorage with new access token if available
+                const newAccessToken = refreshResponse.data?.data?.accessToken;
+                if (newAccessToken) {
+                    Localstorage.set("accessToken", newAccessToken);
+                }
+                
+                return apiClient(originalRequest);
+            }catch(refreshError){
+                // Clear localStorage and redirect to login on refresh failure
+                Localstorage.remove("accessToken");
+                Localstorage.remove("user");
+                Localstorage.remove("role");
+                window.location.href="/login";
+                return Promise.reject(refreshError)
+            }
+        }
+        return Promise.reject(error);
+ }
+)
 
 export default apiClient;

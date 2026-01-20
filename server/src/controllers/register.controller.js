@@ -213,25 +213,27 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
- const refreshAccessToken = async (req, res) => {
-  console.log("to check if the controller ever reached here or not")
-  const token = req.cookies.refreshToken;
-  if (!token) return res.sendStatus(401);
-
-  const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-  const user = await User.findById(decoded._id);
-
-  const valid = await bcrypt.compare(token, user.refreshToken);
-  if (!valid) return res.sendStatus(401);
-
-  const { accessToken, refreshToken } =
-    await generateAccessAndRefereshTokens(user._id);
-
-  res
-    .cookie("accessToken", accessToken, { httpOnly: true })
-    .cookie("refreshToken", refreshToken, { httpOnly: true })
-    .json({ success: true });
-};
+ const refreshAccessToken =asyncHandler(async (req, res) => {
+  
+   console.log("to check if the controller ever reached here or not")
+   const token = req.cookies.refreshToken;
+   if (!token) return res.sendStatus(401);
+ 
+   const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+   const user = await User.findById(decoded._id);
+ 
+   const valid = await bcrypt.compare(token, user.refreshToken);
+   if (!valid) return res.sendStatus(401);
+ 
+   const { accessToken, refreshToken } =
+     await generateAccessAndRefereshTokens(user._id);
+ 
+   res
+     .cookie("accessToken", accessToken, { httpOnly: true })
+     .cookie("refreshToken", refreshToken, { httpOnly: true })
+     .json({ success: true });
+ }
+ );
 
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
