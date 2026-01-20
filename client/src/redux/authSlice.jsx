@@ -160,8 +160,8 @@ const authSlice = createSlice({
       })
       .addCase(refreshTokenOnLoad.rejected, (state, action) => {
         state.isloading = false;
-        state.user = null;
-        state.accessToken = null;
+        // Don't clear user session on refresh failure
+        // User can continue with existing accessToken
         state.error = action.payload;
       });
   },

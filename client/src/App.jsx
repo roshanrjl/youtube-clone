@@ -11,7 +11,11 @@ function App() {
   const { user, isloading } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    dispatch(refreshTokenOnLoad());
+    // Only try to refresh if we have a user in localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      dispatch(refreshTokenOnLoad());
+    }
   }, [dispatch]);
 
     useEffect(() => {

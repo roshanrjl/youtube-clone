@@ -12,9 +12,11 @@ export const loginUser =(data)=>{
   });
 };
 
-export const logoutUser =()=>{
-  return apiClient.post("users/logout")
-}
+export const logoutUser = () => {
+  return apiClient.post("users/logout", {}, {
+    withCredentials: true
+  });
+};
 
 export const refreshAccessToken = () => {
   return axios.post(

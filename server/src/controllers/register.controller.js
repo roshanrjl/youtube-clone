@@ -167,8 +167,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: false, // true always, even on localhost, because SameSite=None requires it
-    sameSite: "none",
+    secure: process.env.NODE_ENV === "production", // true in production, false in development
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   };
 
   return res
@@ -243,8 +243,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     // Cookie options (same as login)
     const options = {
       httpOnly: true,
-      secure: true, // Important for production
-      sameSite: "none",
+      secure: process.env.NODE_ENV === "production", // true in production, false in development
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     };
 
     // Get user without sensitive data
