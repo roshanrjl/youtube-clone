@@ -1,7 +1,8 @@
 // redux/authSlice.js
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { Localstorage } from "../utils/index";
-import { registerUser, loginUser, logoutUser, refreshAccessToken } from "../api/userApi/userapi";
+import { registerUser, loginUser, logoutUser } from "../api/userApi/userapi.jsx";
+import apiClient from  "../api/ApiClient/ApiClinet"; // Axios instance with interceptor
 
 // -------------------- THUNKS --------------------
 
@@ -27,7 +28,7 @@ export const login = createAsyncThunk(
       const res = await loginUser(credentials);
       const { accessToken, user } = res.data.data;
 
-      // Store only accessToken + user (refreshToken is in httpOnly cookie)
+      // Store accessToken + user in LocalStorage
       Localstorage.set("accessToken", accessToken);
       Localstorage.set("user", user);
 
@@ -47,7 +48,7 @@ export const logout = createAsyncThunk(
     try {
       await logoutUser();
 
-      // Clear local storage
+      // Clear LocalStorage
       Localstorage.remove("accessToken");
       Localstorage.remove("user");
 
@@ -56,28 +57,6 @@ export const logout = createAsyncThunk(
       return thunkAPI.rejectWithValue(
         error.response?.data?.message || "Logout failed"
       );
-    }
-  }
-);
-
-// Refresh token on app load (cookie is sent automatically with withCredentials)
-export const refreshTokenOnLoad = createAsyncThunk(
-  "auth/refreshTokenOnLoad",
-  async (_, thunkAPI) => {
-    const user = Localstorage.get("user");
-    if (!user) return thunkAPI.rejectWithValue("No user found");
-
-    try {
-      const res = await refreshAccessToken(); // backend sets new cookies
-      const newAccessToken = res.data.data.accessToken;
-
-      Localstorage.set("accessToken", newAccessToken);
-
-      return { user, accessToken: newAccessToken };
-    } catch (err) {
-      Localstorage.remove("user");
-      Localstorage.remove("accessToken");
-      return thunkAPI.rejectWithValue("Refresh token failed");
     }
   }
 );
@@ -143,25 +122,6 @@ const authSlice = createSlice({
       })
       .addCase(logout.rejected, (state, action) => {
         state.isloading = false;
-        state.error = action.payload;
-      });
-
-    // ---------------- REFRESH TOKEN ----------------
-    builder
-      .addCase(refreshTokenOnLoad.pending, (state) => {
-        state.isloading = true;
-        state.error = null;
-      })
-      .addCase(refreshTokenOnLoad.fulfilled, (state, action) => {
-        state.isloading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
-        state.error = null;
-      })
-      .addCase(refreshTokenOnLoad.rejected, (state, action) => {
-        state.isloading = false;
-        // Don't clear user session on refresh failure
-        // User can continue with existing accessToken
         state.error = action.payload;
       });
   },
