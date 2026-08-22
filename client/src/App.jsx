@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Navbar from "./components/navbar";
+import Navbar from "./components/navbar.jsx";
 import { Outlet } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { initSocket } from "./socketClient/socket";
